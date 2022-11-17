@@ -2,11 +2,9 @@ package com.yupi.project.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.clarity.apiclientsdk.client.ClarityClient;
 import com.yupi.project.annotation.AuthCheck;
-import com.yupi.project.common.BaseResponse;
-import com.yupi.project.common.DeleteRequest;
-import com.yupi.project.common.ErrorCode;
-import com.yupi.project.common.ResultUtils;
+import com.yupi.project.common.*;
 import com.yupi.project.constant.CommonConstant;
 import com.yupi.project.exception.BusinessException;
 import com.yupi.project.model.dto.interfaceinfo.InterfaceInfoAddRequest;
@@ -14,6 +12,7 @@ import com.yupi.project.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
 import com.yupi.project.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 import com.yupi.project.model.entity.InterfaceInfo;
 import com.yupi.project.model.entity.User;
+import com.yupi.project.model.enums.InterfaceInfoStateEnum;
 import com.yupi.project.service.InterfaceInfoService;
 import com.yupi.project.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -41,6 +41,9 @@ public class InterfaceInfoController {
     @Resource
     private UserService userService;
 
+    @Resource
+    private ClarityClient clarityClient;
+
     // region 增删改查
 
     /**
@@ -56,6 +59,8 @@ public class InterfaceInfoController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         InterfaceInfo interfaceInfo = new InterfaceInfo();
+        interfaceInfo.setCreateTime(new Date());
+        interfaceInfo.setUpdateTime(new Date());
         BeanUtils.copyProperties(interfaceInfoAddRequest, interfaceInfo);
         // 校验
         interfaceInfoService.validInterfaceInfo(interfaceInfo, true);
@@ -110,6 +115,7 @@ public class InterfaceInfoController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         InterfaceInfo interfaceInfo = new InterfaceInfo();
+        interfaceInfo.setUpdateTime(new Date());
         BeanUtils.copyProperties(interfaceInfoUpdateRequest, interfaceInfo);
         // 参数校验
         interfaceInfoService.validInterfaceInfo(interfaceInfo, false);
@@ -195,5 +201,74 @@ public class InterfaceInfoController {
     }
 
     // endregion
+    /**
+     * 上线
+     *
+     * @param idRequest
+     * @param request
+     * @return
+     */
+    // 1. 使用注解判断该调用者是否是管理员
+    @AuthCheck(mustRole = "admin")
+    @PostMapping("/online")
+    public BaseResponse<Boolean> onlineInterfaceInfo(@RequestBody IdRequest idRequest,
+                                                     HttpServletRequest request) {
+        // 2. 校验参数
+        if (idRequest == null || idRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 3. 校验该接口是否存在
+        long id = idRequest.getId();
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 4. 判断该接口是否可以调用
+        // 现在只是进行模拟，并不是实际的效果
+        com.clarity.apiclientsdk.Model.User user = new com.clarity.apiclientsdk.Model.User();
+        user.setName("test");
+        if (StringUtils.isBlank(clarityClient.getUsernameByPost(user))) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口测试调用失败");
+        }
+        // 5. 修改接口数据库中的状态字段为 1
+        InterfaceInfo interfaceInfo = new InterfaceInfo();
+        // 这里可以创建枚举类来表示状态，比较规范
+        interfaceInfo.setId(id);
+        interfaceInfo.setStatus(InterfaceInfoStateEnum.ONLINE.getValue());
+        interfaceInfo.setUpdateTime(new Date());
+        boolean result = interfaceInfoService.updateById(interfaceInfo);
+        return ResultUtils.success(result);
+    }
 
+    /**
+     * 下线
+     *
+     * @param idRequest
+     * @param request
+     * @return
+     */
+    // 1. 使用注解判断该调用者是否是管理员
+    @AuthCheck(mustRole = "admin")
+    @PostMapping("/offline")
+    public BaseResponse<Boolean> offlineInterfaceInfo(@RequestBody IdRequest idRequest,
+                                                     HttpServletRequest request) {
+        // 2. 校验参数
+        if (idRequest == null || idRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 3. 校验该接口是否存在
+        long id = idRequest.getId();
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 4. 修改接口数据库中的状态字段为 1
+        InterfaceInfo interfaceInfo = new InterfaceInfo();
+        // 这里可以创建枚举类来表示状态，比较规范
+        interfaceInfo.setId(id);
+        interfaceInfo.setStatus(InterfaceInfoStateEnum.OFFLINE.getValue());
+        interfaceInfo.setUpdateTime(new Date());
+        boolean result = interfaceInfoService.updateById(interfaceInfo);
+        return ResultUtils.success(result);
+    }
 }

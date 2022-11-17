@@ -1,5 +1,6 @@
 use api;
 
+
 -- 接口信息
 create table if not exists api.`interface_info`
 (
