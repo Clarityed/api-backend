@@ -3,11 +3,13 @@ package com.yupi.project.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.clarity.apiclientsdk.client.ClarityClient;
+import com.google.gson.Gson;
 import com.yupi.project.annotation.AuthCheck;
 import com.yupi.project.common.*;
 import com.yupi.project.constant.CommonConstant;
 import com.yupi.project.exception.BusinessException;
 import com.yupi.project.model.dto.interfaceinfo.InterfaceInfoAddRequest;
+import com.yupi.project.model.dto.interfaceinfo.InterfaceInfoInvokeRequest;
 import com.yupi.project.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
 import com.yupi.project.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 import com.yupi.project.model.entity.InterfaceInfo;
@@ -225,7 +227,7 @@ public class InterfaceInfoController {
         }
         // 4. 判断该接口是否可以调用
         // 现在只是进行模拟，并不是实际的效果
-        com.clarity.apiclientsdk.Model.User user = new com.clarity.apiclientsdk.Model.User();
+        com.clarity.apiclientsdk.model.User user = new com.clarity.apiclientsdk.model.User();
         user.setName("test");
         if (StringUtils.isBlank(clarityClient.getUsernameByPost(user))) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口测试调用失败");
@@ -271,4 +273,43 @@ public class InterfaceInfoController {
         boolean result = interfaceInfoService.updateById(interfaceInfo);
         return ResultUtils.success(result);
     }
+
+    /**
+     * 测试请求接口
+     *
+     * @param interfaceInfoInvokeRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/invoke")
+    public BaseResponse<Object> invokeInterfaceInfo(@RequestBody InterfaceInfoInvokeRequest interfaceInfoInvokeRequest,
+                                                      HttpServletRequest request) {
+        // 1. 校验参数
+        if (interfaceInfoInvokeRequest == null || interfaceInfoInvokeRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 2. 判断接口是否存在
+        long id = interfaceInfoInvokeRequest.getId();
+        String userRequestParams = interfaceInfoInvokeRequest.getUserRequestParams();
+        InterfaceInfo oldInterfaceInfo = interfaceInfoService.getById(id);
+        if (oldInterfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        // 3. 判断接口是否开启
+        if (oldInterfaceInfo.getStatus() == InterfaceInfoStateEnum.OFFLINE.getValue()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "接口已经下线");
+        }
+        // 4. 验证用户 ak、sk
+        User loginUser = userService.getLoginUser(request);
+        String accessKey = loginUser.getAccessKey();
+        String secretKey = loginUser.getSecretKey();
+        ClarityClient tempClient = new ClarityClient(accessKey, secretKey);
+        Gson gson = new Gson();
+        com.clarity.apiclientsdk.model.User user = gson.fromJson(userRequestParams, com.clarity.apiclientsdk.model.User.class);
+        // 5. 请求接口
+        String result = tempClient.getUsernameByPost(user);
+        // 6. 返回结果
+        return ResultUtils.success(result);
+    }
+
 }
