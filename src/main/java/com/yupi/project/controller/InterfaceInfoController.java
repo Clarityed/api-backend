@@ -28,7 +28,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * 帖子接口
+ * 接口信息接口
  *
  * @author yupi
  */
