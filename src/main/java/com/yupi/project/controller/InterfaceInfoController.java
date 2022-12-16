@@ -228,7 +228,7 @@ public class InterfaceInfoController {
         // 4. 判断该接口是否可以调用
         // 现在只是进行模拟，并不是实际的效果
         com.clarity.apiclientsdk.model.User user = new com.clarity.apiclientsdk.model.User();
-        user.setName("test");
+        user.setUsername("test");
         if (StringUtils.isBlank(clarityClient.getUsernameByPost(user))) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口测试调用失败");
         }
