@@ -19,8 +19,10 @@ package com.yupi.project.provider;
 import com.clarity.apibackend.publicinterface.myinterface.DemoService;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.apache.dubbo.rpc.RpcContext;
+import org.springframework.stereotype.Service;
 
 @DubboService
+@Service
 public class DemoServiceImpl implements DemoService {
 
     @Override
