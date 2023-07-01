@@ -30,7 +30,7 @@ import java.util.List;
 /**
  * 接口信息接口
  *
- * @author yupi
+ * @author clarity
  */
 @RestController
 @RequestMapping("/interfaceInfo")

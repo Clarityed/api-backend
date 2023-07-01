@@ -3,7 +3,7 @@ package com.yupi.project.constant;
 /**
  * 通用常量
  *
- * @author yupi
+ * @author clarity
  */
 public interface CommonConstant {
 

@@ -7,7 +7,7 @@ import java.io.Serializable;
 /**
  * id 请求
  *
- * @author yupi
+ * @author clarity
  */
 @Data
 public class IdRequest implements Serializable {
