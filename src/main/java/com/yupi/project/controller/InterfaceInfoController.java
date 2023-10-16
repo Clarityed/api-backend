@@ -26,6 +26,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 接口信息接口
@@ -229,7 +230,7 @@ public class InterfaceInfoController {
         // 现在只是进行模拟，并不是实际的效果
         com.clarity.apiclientsdk.model.User user = new com.clarity.apiclientsdk.model.User();
         user.setUsername("test");
-        if (StringUtils.isBlank(clarityClient.getUsernameByPost(user))) {
+        if (StringUtils.isBlank(clarityClient.getUsernameByPost(user).get("result"))) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口测试调用失败");
         }
         // 5. 修改接口数据库中的状态字段为 1
@@ -307,7 +308,12 @@ public class InterfaceInfoController {
         Gson gson = new Gson();
         com.clarity.apiclientsdk.model.User user = gson.fromJson(userRequestParams, com.clarity.apiclientsdk.model.User.class);
         // 5. 请求接口
-        String result = tempClient.getUsernameByPost(user);
+        Map<String, String> usernameByPost = tempClient.getUsernameByPost(user);
+        String status = usernameByPost.get("status");
+        String result = usernameByPost.get("result");
+        if (Integer.parseInt(status) != 200) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, result);
+        }
         // 6. 返回结果
         return ResultUtils.success(result);
     }
